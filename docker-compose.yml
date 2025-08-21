@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      NODE_ENV: development
+      PORT: 5001
+      REDIS_HOST_CHAT: 161.97.122.119
+      REDIS_PORT_CHAT: 30769
+      REDIS_USER_CHAT: default
+      REDIS_PASSWORD_CHAT: admin
