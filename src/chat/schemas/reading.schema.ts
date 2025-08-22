@@ -16,14 +16,14 @@ export class ReadingUser {
   messages: ReadingMessageItem[];
 }
 
-@Schema({ _id: false })
+@Schema()
 export class Reading extends Document {
-  @Prop({ required: true, unique: true })
-  readingId: string;
+  @Prop({ required: true })
+  readingId: string; // Use custom field instead of _id
 
   @Prop([ReadingUser])
   users: ReadingUser[];
 }
 
 export const ReadingSchema = SchemaFactory.createForClass(Reading);
-ReadingSchema.index({ readingId: 1 }, { unique: true });
+ReadingSchema.index({ readingId: 1 });

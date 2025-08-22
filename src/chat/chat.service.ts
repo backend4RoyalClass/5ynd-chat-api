@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from './redis.service';
+import { MessageDbService } from './message-db.service';
 import { ChatMessage, MessageResponse } from './interfaces/message.interface';
 
 @Injectable()
 export class ChatService {
-  constructor(private redisService: RedisService) {}
+  constructor(
+    private redisService: RedisService,
+    private messageDbService: MessageDbService,
+  ) {}
 
   async sendMessage(body: any, user: any): Promise<MessageResponse> {
     try {
@@ -23,11 +27,15 @@ export class ChatService {
         to: to,
         message: message,
         messageBack: messageBack,
-        type: type,
+        type: type || 'text',
         createdAt: new Date(),
         isWeb: isWeb,
         delivered: false
       };
+
+      // Store message in MongoDB for both users
+      await this.messageDbService.addMessage(to, userId, message, chatId);
+      await this.messageDbService.addMessage(userId, to, messageBack, chatId);
 
       // Check if users are online
       const endPeerWeb = await this.redisService.getData('web', to);
@@ -41,6 +49,14 @@ export class ChatService {
         const pending = await this.redisService.getData('pending_web', to) || [];
         pending.push(msg);
         await this.redisService.setData('pending_web', to, pending, 2);
+        
+        // Also store in MongoDB
+        await this.messageDbService.storePendingMessage(`${to}_web`, {
+          id: chatId,
+          from: userId,
+          msg: message,
+          date: new Date()
+        });
       } else {
         if (endPeerWeb.into === userId) intoCW = true;
       }
@@ -50,6 +66,14 @@ export class ChatService {
         const pending = await this.redisService.getData('pending_mobile', to) || [];
         pending.push(msg);
         await this.redisService.setData('pending_mobile', to, pending, 2);
+        
+        // Also store in MongoDB
+        await this.messageDbService.storePendingMessage(`${to}_mobile`, {
+          id: chatId,
+          from: userId,
+          msg: message,
+          date: new Date()
+        });
       } else {
         if (endPeerMobile.into === userId) intoCW = true;
       }
@@ -89,7 +113,7 @@ export class ChatService {
             }
           };
           // Publish seen pending
-          await this.redisService.getPublisher().publish('SEEN_PENDING', JSON.stringify({ from: userId, to, id: chatId }));
+          await this.redisService.publish('SEEN_PENDING', JSON.stringify({ from: userId, to, id: chatId }));
           break;
         default:
           msg.delivered = false;
@@ -119,13 +143,24 @@ export class ChatService {
       // Publish to chat channel if user is online
       if (endPeerWeb || endPeerMobile) {
         setTimeout(async () => {
-          await this.redisService.getPublisher().publish(`CHAT-${to}`, JSON.stringify(msg));
+          await this.redisService.publish(`CHAT-${to}`, JSON.stringify(msg));
         }, 1000);
       }
 
+      console.log(`Message stored and processed: ${chatId}`);
       return response;
     } catch (error) {
+      console.error('Error in sendMessage:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  async getMessageHistory(userId: string, chatUserId: string): Promise<any[]> {
+    try {
+      return await this.messageDbService.getMessagesFromUser(userId, chatUserId);
+    } catch (error) {
+      console.error('Error getting message history:', error);
+      return [];
     }
   }
 }

@@ -22,14 +22,14 @@ export class UserMessages {
   messages: MessageItem[];
 }
 
-@Schema({ _id: false })
+@Schema()
 export class Message extends Document {
-  @Prop({ required: true, unique: true })
-  messageId: string;
+  @Prop({ required: true })
+  messageId: string; // Use custom field instead of _id
 
   @Prop([UserMessages])
   users: UserMessages[];
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
-MessageSchema.index({ messageId: 1 }, { unique: true });
+MessageSchema.index({ messageId: 1 });

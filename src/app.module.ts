@@ -14,11 +14,18 @@ import { HealthController } from './health.controller';
     MongooseModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URL'),
+        // Additional MongoDB options for replica set
+        retryWrites: true,
+        w: 'majority',
+        readPreference: 'primary',
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
       }),
       inject: [ConfigService],
     }),
-    AuthModule,
-    ChatModule,
+    ChatModule, // Import ChatModule first (contains RedisService)
+    AuthModule, // Then AuthModule
     EventModule,
   ],
   controllers: [HealthController],

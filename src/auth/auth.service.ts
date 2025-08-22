@@ -4,18 +4,48 @@ import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+import Redis from 'ioredis';
+
+// Add User Schema for storing tokens
+interface User {
+  userId: string;
+  webToken: string;
+  mobileToken: string;
+  publicKey: string;
+}
 
 @Injectable()
 export class AuthService implements OnModuleInit {
   private privateKey: crypto.KeyObject;
   private publicKey: crypto.KeyObject;
   private publicKeyFile: string;
+  private users: Map<string, User> = new Map(); // Temporary storage - replace with DB
+  private redisClient: Redis;
 
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
     this.initializeKeys();
+    this.initializeRedis();
     await this.cachePublicKey();
+  }
+
+  private initializeRedis() {
+    const redisConfig: any = { db: 0 };
+
+    if (this.configService.get('NODE_ENV') === 'production') {
+      redisConfig.url = this.configService.get('REDIS_URL_CHAT');
+    } else {
+      redisConfig.host = this.configService.get('REDIS_HOST_CHAT') || '161.97.122.119';
+      redisConfig.port = this.configService.get('REDIS_PORT_CHAT') || 30769;
+      redisConfig.username = this.configService.get('REDIS_USER_CHAT') || 'default';
+      redisConfig.password = this.configService.get('REDIS_PASSWORD_CHAT') || 'admin';
+    }
+
+    this.redisClient = new Redis(redisConfig);
+    this.redisClient.on('connect', () => {
+      console.log('Connected to Redis for Auth Service');
+    });
   }
 
   private initializeKeys() {
@@ -45,9 +75,8 @@ export class AuthService implements OnModuleInit {
 
   private async cachePublicKey() {
     try {
-      // Cache public key to Redis for chat server
       const file = Buffer.from(this.publicKeyFile, 'utf8').toString('base64');
-      // You can implement Redis caching here if needed
+      await this.redisClient.set('key_public', file, 'EX', 3600); // 1 hour expiry
       console.log('Public key cached successfully');
     } catch (error) {
       console.error('Error caching public key:', error);
@@ -81,9 +110,9 @@ export class AuthService implements OnModuleInit {
       const webToken = jwt.sign(payloadWeb, this.privateKey, { algorithm: 'RS256' });
       const mobileToken = jwt.sign(payloadMobile, this.privateKey, { algorithm: 'RS256' });
 
-      // Here you would save to database
-      // const user = { userId, webToken, mobileToken, pub: pubBase64 };
-      // await this.saveUserToDatabase(user);
+      // Store user tokens (replace with actual DB storage)
+      const user: User = { userId, webToken, mobileToken, publicKey: pubBase64 };
+      this.users.set(userId, user);
       
       return {
         success: true,
@@ -102,16 +131,13 @@ export class AuthService implements OnModuleInit {
         throw new BadRequestException('Invalid body');
       }
 
-      // Here you would get token from database
-      // const token = isWeb ? await this.getWebToken(userId) : await this.getMobileToken(userId);
-      
-      // For demo purposes, creating a mock token
-      const mockPayload = { userId, role: 'CUS', hashedPassword: await bcrypt.hash('demo', 10), priv: 'demo', name: 'Demo User', isWeb };
-      const token = jwt.sign(mockPayload, this.privateKey, { algorithm: 'RS256' });
-
-      if (!token) {
+      // Get stored user (replace with DB query)
+      const user = this.users.get(userId);
+      if (!user) {
         throw new UnauthorizedException('User does not exist... Register Now..');
       }
+
+      const token = isWeb ? user.webToken : user.mobileToken;
 
       const decoded = jwt.verify(token, this.publicKey, { algorithms: ['RS256'] }) as any;
       const { hashedPassword, priv } = decoded;
@@ -119,16 +145,17 @@ export class AuthService implements OnModuleInit {
       const isLogged = await bcrypt.compare(password, hashedPassword);
       
       if (isLogged) {
-        // const pub = await this.getPublicKey(userId);
-        const pub = 'demo_public_key'; // Mock public key
         return {
           success: true,
-          data: { token, priv, pub }
+          data: { token, priv, pub: user.publicKey }
         };
       } else {
         throw new UnauthorizedException('Invalid Password');
       }
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException(error.message);
     }
   }
@@ -137,13 +164,14 @@ export class AuthService implements OnModuleInit {
     try {
       const userId = email;
       const { name } = user;
-      // const pub = await this.getPublicKey(userId);
-      const pub = 'demo_peer_public_key'; // Mock public key
       
-      if (pub) {
+      // Get peer's public key (replace with DB query)
+      const peer = this.users.get(userId);
+      
+      if (peer) {
         return {
           success: true,
-          data: { pub, name },
+          data: { pub: peer.publicKey, name },
           message: 'Peer Connected....'
         };
       } else {

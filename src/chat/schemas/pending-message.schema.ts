@@ -16,14 +16,14 @@ export class PendingMessageItem {
   date: Date;
 }
 
-@Schema({ _id: false })
+@Schema()
 export class PendingMessage extends Document {
-  @Prop({ required: true, unique: true })
-  pendingId: string;
+  @Prop({ required: true })
+  pendingId: string; // Use custom field instead of _id
 
   @Prop([PendingMessageItem])
   messages: PendingMessageItem[];
 }
 
 export const PendingMessageSchema = SchemaFactory.createForClass(PendingMessage);
-PendingMessageSchema.index({ pendingId: 1 }, { unique: true });
+PendingMessageSchema.index({ pendingId: 1 });

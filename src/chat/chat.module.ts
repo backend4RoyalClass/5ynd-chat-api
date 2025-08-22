@@ -5,6 +5,7 @@ import Redis from 'ioredis';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { RedisService } from './redis.service';
+import { MessageDbService } from './message-db.service';
 import { Message, MessageSchema } from './schemas/message.schema';
 import { PendingMessage, PendingMessageSchema } from './schemas/pending-message.schema';
 import { Reading, ReadingSchema } from './schemas/reading.schema';
@@ -62,7 +63,9 @@ import { AuthModule } from '../auth/auth.module';
     },
     ChatService,
     RedisService,
+    MessageDbService,
   ],
   controllers: [ChatController],
+  exports: [RedisService, MessageDbService], // Export these services
 })
 export class ChatModule {}
