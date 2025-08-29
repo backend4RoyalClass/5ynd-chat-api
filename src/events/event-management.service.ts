@@ -1,13 +1,17 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { MessageDbService } from '../chat/message-db.service';
 
 @Injectable()
 export class EventManagementService implements OnModuleInit, OnModuleDestroy {
   private chatSubscriber: Redis;
   private chatRedisClient: Redis;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private messageDbService: MessageDbService
+  ) {}
 
   async onModuleInit() {
     // Initialize Redis connections
@@ -35,7 +39,11 @@ export class EventManagementService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async subscribeToChatChannels() {
-    const channels = ['DELIVERY_CACHE_WEB', 'DELIVERY_CACHE_MOBILE', 'SEEN_PENDING', 'SEEN_CACHE_WEB', 'SEEN_CACHE_MOBILE'];
+    const channels = [
+      'DELIVERY_CACHE_WEB', 'DELIVERY_CACHE_MOBILE', 
+      'SEEN_PENDING', 'SEEN_CACHE_WEB', 'SEEN_CACHE_MOBILE',
+      'PENDING_MESSAGE_DELIVERED' // New channel for delivered pending messages
+    ];
     
     await this.chatSubscriber.subscribe(...channels);
     Logger.log('Subscribed to chat channels:', channels);
@@ -60,6 +68,9 @@ export class EventManagementService implements OnModuleInit, OnModuleDestroy {
         case 'SEEN_CACHE_MOBILE':
           await this.handleSeenCache(msg, 'mobile');
           break;
+        case 'PENDING_MESSAGE_DELIVERED':
+          await this.handlePendingMessageDelivered(msg);
+          break;
         default:
           break;
       }
@@ -68,17 +79,55 @@ export class EventManagementService implements OnModuleInit, OnModuleDestroy {
 
   private async handleDeliveryCache(msg: any, type: string) {
     Logger.log(`Handling delivery cache for ${type}:`, msg);
-    // Implementation for delivery cache logic
+    try {
+      // Mark message as delivered in MongoDB
+      await this.messageDbService.markMessageAsDelivered(msg.id);
+      Logger.log(`Message ${msg.id} marked as delivered in MongoDB`);
+    } catch (error) {
+      Logger.error(`Error handling delivery cache: ${error.message}`);
+    }
   }
 
   private async handleSeenCache(msg: any, type: string) {
     Logger.log(`Handling seen cache for ${type}:`, msg);
-    // Implementation for seen cache logic
+    try {
+      // Mark message as seen in MongoDB
+      await this.messageDbService.markMessageAsSeen(msg.id);
+      Logger.log(`Message ${msg.id} marked as seen in MongoDB`);
+    } catch (error) {
+      Logger.error(`Error handling seen cache: ${error.message}`);
+    }
+  }
+
+  private async handlePendingMessageDelivered(msg: any) {
+    Logger.log('Handling pending message delivered:', msg);
+    try {
+      const { toUserId, fromUserId, messageContent, messageBackContent, messageId } = msg;
+      
+      // Move pending message to conversation storage
+      await this.messageDbService.deliverPendingMessage(
+        toUserId, 
+        fromUserId, 
+        messageContent, 
+        messageBackContent, 
+        messageId
+      );
+      
+      Logger.log(`Pending message ${messageId} successfully delivered and stored in MongoDB`);
+    } catch (error) {
+      Logger.error(`Error handling pending message delivery: ${error.message}`);
+    }
   }
 
   private async handleSeenPendingCache(msg: any) {
     Logger.log('Handling seen pending cache:', msg);
-    // Implementation for seen pending cache logic
+    try {
+      // Mark message as seen in MongoDB
+      await this.messageDbService.markMessageAsSeen(msg.id);
+      Logger.log(`Message ${msg.id} marked as seen in MongoDB`);
+    } catch (error) {
+      Logger.error(`Error handling seen pending cache: ${error.message}`);
+    }
   }
 
   async publish(channel: string, message: string) {

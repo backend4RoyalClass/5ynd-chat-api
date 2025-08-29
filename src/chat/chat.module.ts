@@ -6,7 +6,7 @@ import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { RedisService } from './redis.service';
 import { MessageDbService } from './message-db.service';
-import { Message, MessageSchema } from './schemas/message.schema';
+import { Conversation, ConversationSchema } from './schemas/message.schema';
 import { PendingMessage, PendingMessageSchema } from './schemas/pending-message.schema';
 import { Reading, ReadingSchema } from './schemas/reading.schema';
 import { AuthModule } from '../auth/auth.module';
@@ -14,7 +14,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: Message.name, schema: MessageSchema },
+      { name: Conversation.name, schema: ConversationSchema },
       { name: PendingMessage.name, schema: PendingMessageSchema },
       { name: Reading.name, schema: ReadingSchema },
     ]),

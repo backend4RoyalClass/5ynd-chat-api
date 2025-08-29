@@ -33,9 +33,8 @@ export class ChatService {
         delivered: false
       };
 
-      // Store message in MongoDB for both users
-      await this.messageDbService.addMessage(to, userId, message, chatId);
-      await this.messageDbService.addMessage(userId, to, messageBack, chatId);
+      // Store message in MongoDB conversation
+      await this.messageDbService.addMessage(to, userId, message, messageBack, chatId);
 
       // Check if users are online
       const endPeerWeb = await this.redisService.getData('web', to);
@@ -157,7 +156,7 @@ export class ChatService {
 
   async getMessageHistory(userId: string, chatUserId: string): Promise<any[]> {
     try {
-      return await this.messageDbService.getMessagesFromUser(userId, chatUserId);
+      return await this.messageDbService.getConversationMessages(userId, chatUserId);
     } catch (error) {
       console.error('Error getting message history:', error);
       return [];
