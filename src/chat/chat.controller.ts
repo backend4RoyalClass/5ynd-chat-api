@@ -6,7 +6,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @Post('sendMessage')
+  @Post('send')
   @UseGuards(JwtAuthGuard)
   async sendMessage(@Body() body: any, @Req() req: any) {
     return await this.chatService.sendMessage(body, req.user);
