@@ -35,11 +35,7 @@ import { AuthModule } from '../auth/auth.module';
           redisConfig.password = configService.get('REDIS_PASSWORD_CHAT') || 'admin';
         }
 
-        const redis = new Redis(redisConfig);
-        redis.on('connect', () => {
-          console.log('Connected to Redis for Chatting');
-        });
-        return redis;
+        return new Redis(redisConfig);
       },
       inject: [ConfigService],
     },

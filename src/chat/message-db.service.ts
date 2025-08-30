@@ -28,8 +28,6 @@ export class MessageDbService {
     messageId: string
   ): Promise<void> {
     try {
-      this.logger.log(`Adding message ${messageId} from ${fromUserId} to ${toUserId}`);
-      
       const conversationId = this.generateConversationId(fromUserId, toUserId);
       const message = {
         id: messageId,
@@ -59,10 +57,7 @@ export class MessageDbService {
           createdAt: new Date(),
           updatedAt: new Date()
         });
-        this.logger.log(`Created new conversation ${conversationId}`);
       }
-
-      this.logger.log(`Message added successfully: ${messageId}`);
     } catch (error) {
       this.logger.error(`Error adding message to database: ${error.message}`, error.stack);
       throw error;
@@ -71,8 +66,6 @@ export class MessageDbService {
 
   async markMessageAsDelivered(messageId: string): Promise<void> {
     try {
-      this.logger.log(`Marking message ${messageId} as delivered`);
-      
       const updateResult = await this.conversationModel.updateOne(
         { 'messages.id': messageId },
         {
@@ -82,12 +75,6 @@ export class MessageDbService {
           }
         }
       );
-
-      if (updateResult.matchedCount > 0) {
-        this.logger.log(`Message ${messageId} marked as delivered`);
-      } else {
-        this.logger.log(`Message ${messageId} not found for delivery update`);
-      }
     } catch (error) {
       this.logger.error(`Error marking message as delivered: ${error.message}`, error.stack);
     }
@@ -95,8 +82,6 @@ export class MessageDbService {
 
   async markMessageAsSeen(messageId: string): Promise<void> {
     try {
-      this.logger.log(`Marking message ${messageId} as seen`);
-      
       const updateResult = await this.conversationModel.updateOne(
         { 'messages.id': messageId },
         {
@@ -106,12 +91,6 @@ export class MessageDbService {
           }
         }
       );
-
-      if (updateResult.matchedCount > 0) {
-        this.logger.log(`Message ${messageId} marked as seen`);
-      } else {
-        this.logger.log(`Message ${messageId} not found for seen update`);
-      }
     } catch (error) {
       this.logger.error(`Error marking message as seen: ${error.message}`, error.stack);
     }
@@ -119,8 +98,6 @@ export class MessageDbService {
 
   async getConversationMessages(userId1: string, userId2: string): Promise<any[]> {
     try {
-      this.logger.log(`Getting conversation messages between ${userId1} and ${userId2}`);
-      
       const conversationId = this.generateConversationId(userId1, userId2);
       const conversation = await this.conversationModel.findOne(
         { conversationId },
@@ -128,11 +105,8 @@ export class MessageDbService {
       );
 
       if (!conversation || !conversation.messages.length) {
-        this.logger.log(`No conversation found between ${userId1} and ${userId2}`);
         return [];
       }
-
-      this.logger.log(`Found ${conversation.messages.length} messages in conversation`);
       return conversation.messages;
     } catch (error) {
       this.logger.error(`Error retrieving conversation messages: ${error.message}`, error.stack);
@@ -142,8 +116,6 @@ export class MessageDbService {
 
   async getMessagesFromUser(toUserId: string, fromUserId: string): Promise<any[]> {
     try {
-      this.logger.log(`Getting messages from ${fromUserId} to ${toUserId}`);
-      
       const conversationId = this.generateConversationId(fromUserId, toUserId);
       const conversation = await this.conversationModel.findOne(
         { conversationId },
@@ -151,11 +123,9 @@ export class MessageDbService {
       );
 
       if (!conversation || !conversation.messages.length) {
-        this.logger.log(`No messages found from ${fromUserId} to ${toUserId}`);
         return [];
       }
 
-      this.logger.log(`Found ${conversation.messages.length} messages from ${fromUserId} to ${toUserId}`);
       return conversation.messages;
     } catch (error) {
       this.logger.error(`Error retrieving messages: ${error.message}`, error.stack);
@@ -165,19 +135,15 @@ export class MessageDbService {
 
   async getAllConversationsForUser(userId: string): Promise<any[]> {
     try {
-      this.logger.log(`Getting all conversations for user ${userId}`);
-      
       const conversations = await this.conversationModel.find(
         { participants: userId },
         { conversationId: 1, participants: 1, messages: 1, updatedAt: 1 }
       ).sort({ updatedAt: -1 });
       
       if (!conversations.length) {
-        this.logger.log(`No conversations found for user ${userId}`);
         return [];
       }
 
-      this.logger.log(`Found ${conversations.length} conversations for ${userId}`);
       return conversations;
     } catch (error) {
       this.logger.error(`Error retrieving all conversations: ${error.message}`, error.stack);
@@ -210,8 +176,6 @@ export class MessageDbService {
 
   async storePendingMessage(id: string, message: any): Promise<void> {
     try {
-      this.logger.log(`Storing pending message for ${id}`);
-      
       // Try to update existing document
       const updateResult = await this.pendingMessageModel.updateOne(
         { pendingId: id },
@@ -224,9 +188,6 @@ export class MessageDbService {
           pendingId: id,
           messages: [message]
         });
-        this.logger.log(`Created new pending message document for ${id}`);
-      } else {
-        this.logger.log(`Updated existing pending message document for ${id}`);
       }
     } catch (error) {
       this.logger.error(`Error storing pending message: ${error.message}`, error.stack);
@@ -236,16 +197,12 @@ export class MessageDbService {
 
   async getPendingMessages(id: string): Promise<any[]> {
     try {
-      this.logger.log(`Getting pending messages for ${id}`);
-      
       const userMessages = await this.pendingMessageModel.findOne({ pendingId: id }).select('messages');
 
       if (!userMessages) {
-        this.logger.log(`No pending messages found for ${id}`);
         return [];
       }
 
-      this.logger.log(`Found ${userMessages.messages.length} pending messages for ${id}`);
       return userMessages.messages;
     } catch (error) {
       this.logger.error(`Error retrieving pending messages: ${error.message}`, error.stack);
@@ -255,14 +212,10 @@ export class MessageDbService {
 
   async deleteAllPendingMessages(id: string): Promise<void> {
     try {
-      this.logger.log(`Deleting pending messages for ${id}`);
-      
       await this.pendingMessageModel.updateOne(
         { pendingId: id },
         { $set: { messages: [] } }
       );
-      
-      this.logger.log(`All pending messages deleted for user: ${id}`);
     } catch (error) {
       this.logger.error(`Error deleting pending messages: ${error.message}`, error.stack);
     }
@@ -270,18 +223,10 @@ export class MessageDbService {
 
   async deleteMessage(id: string, messageId: string): Promise<void> {
     try {
-      this.logger.log(`Deleting pending message ${messageId} for ${id}`);
-      
       const result = await this.pendingMessageModel.updateOne(
         { pendingId: id },
         { $pull: { messages: { id: messageId } } }
       );
-
-      if (result.modifiedCount > 0) {
-        this.logger.log(`Message with ID ${messageId} successfully deleted for user ${id}`);
-      } else {
-        this.logger.log(`No message found with ID ${messageId} for user ${id}`);
-      }
     } catch (error) {
       this.logger.error(`Error deleting message: ${error.message}`, error.stack);
     }
@@ -295,8 +240,6 @@ export class MessageDbService {
     messageId: string
   ): Promise<void> {
     try {
-      this.logger.log(`Delivering pending message ${messageId} from ${fromUserId} to ${toUserId}`);
-      
       // First, store the message in the conversation
       await this.addMessage(toUserId, fromUserId, messageContent, messageBackContent, messageId);
       
@@ -305,8 +248,6 @@ export class MessageDbService {
       
       // Remove from pending messages
       await this.deleteMessage(toUserId, messageId);
-      
-      this.logger.log(`Pending message ${messageId} successfully delivered and stored`);
     } catch (error) {
       this.logger.error(`Error delivering pending message: ${error.message}`, error.stack);
       throw error;
@@ -315,12 +256,9 @@ export class MessageDbService {
 
   async deliverAllPendingMessages(toUserId: string): Promise<void> {
     try {
-      this.logger.log(`Delivering all pending messages for ${toUserId}`);
-      
       const pendingMessages = await this.getPendingMessages(toUserId);
       
       if (pendingMessages.length === 0) {
-        this.logger.log(`No pending messages to deliver for ${toUserId}`);
         return;
       }
 
@@ -346,8 +284,6 @@ export class MessageDbService {
       
       // Clear all pending messages after delivery
       await this.deleteAllPendingMessages(toUserId);
-      
-      this.logger.log(`Delivered ${deliveredCount} out of ${pendingMessages.length} pending messages for ${toUserId}`);
     } catch (error) {
       this.logger.error(`Error delivering all pending messages: ${error.message}`, error.stack);
     }
@@ -356,10 +292,7 @@ export class MessageDbService {
   // Reading/Receipt Management
   async storeInReading(to: string, pendingMessages: any[]): Promise<void> {
     try {
-      this.logger.log(`Storing reading receipts for ${to}`);
-      
       if (pendingMessages.length === 0) {
-        this.logger.log('No pending messages to process for reading');
         return;
       }
 
@@ -389,10 +322,7 @@ export class MessageDbService {
           readingId: to,
           users: usersArray
         });
-        this.logger.log(`Created new reading document for ${to}`);
       }
-
-      this.logger.log(`Reading receipts stored successfully for ${to}`);
     } catch (error) {
       this.logger.error(`Error storing reading receipts: ${error.message}`, error.stack);
     }
@@ -400,20 +330,16 @@ export class MessageDbService {
 
   async getToReadMessages(to: string, from: string): Promise<any[]> {
     try {
-      this.logger.log(`Getting to-read messages for ${to} from ${from}`);
-      
       const result = await this.readingModel.findOne(
         { readingId: to, 'users.userId': from },
         { 'users.$': 1 }
       );
 
       if (!result || result.users.length === 0) {
-        this.logger.log(`No to-read messages found for ${to} from ${from}`);
         return [];
       }
 
       const messages = result.users[0].messages;
-      this.logger.log(`Found ${messages.length} to-read messages for ${to} from ${from}`);
       return messages;
     } catch (error) {
       this.logger.error(`Error retrieving to-read messages: ${error.message}`, error.stack);
@@ -423,18 +349,10 @@ export class MessageDbService {
 
   async deleteToReadMessages(to: string, from: string): Promise<void> {
     try {
-      this.logger.log(`Deleting to-read messages for ${to} from ${from}`);
-      
       const result = await this.readingModel.updateOne(
         { readingId: to },
         { $pull: { users: { userId: from } } }
       );
-
-      if (result.modifiedCount > 0) {
-        this.logger.log(`To-read messages from user ${from} successfully deleted for ${to}`);
-      } else {
-        this.logger.log(`No to-read messages found for user ${from} and ${to}`);
-      }
     } catch (error) {
       this.logger.error(`Error deleting to-read messages: ${error.message}`, error.stack);
     }
@@ -444,7 +362,6 @@ export class MessageDbService {
   async checkConnection(): Promise<boolean> {
     try {
       const state = this.conversationModel.db.readyState;
-      this.logger.log(`MongoDB connection state: ${state}`);
       return state === 1;
     } catch (error) {
       this.logger.error(`MongoDB connection failed: ${error.message}`);

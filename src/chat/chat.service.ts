@@ -141,17 +141,10 @@ export class ChatService {
 
       // Publish to chat channel if user is online
       if (endPeerWeb || endPeerMobile) {
-        console.log(`🚀 User ${to} is online - publishing to CHAT-${to}`);
-        console.log(`📡 Publishing message:`, { id: msg.id, from: msg.from, to: msg.to });
         setTimeout(async () => {
           await this.redisService.publish(`CHAT-${to}`, JSON.stringify(msg));
-          console.log(`✅ Message published to Redis channel: CHAT-${to}`);
         }, 1000);
-      } else {
-        console.log(`❌ User ${to} is OFFLINE - storing as pending only`);
       }
-
-      console.log(`Message stored and processed: ${chatId}`);
       return response;
     } catch (error) {
       console.error('Error in sendMessage:', error);

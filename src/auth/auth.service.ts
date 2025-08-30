@@ -43,9 +43,6 @@ export class AuthService implements OnModuleInit {
     }
 
     this.redisClient = new Redis(redisConfig);
-    this.redisClient.on('connect', () => {
-      console.log('Connected to Redis for Auth Service');
-    });
   }
 
   private initializeKeys() {
@@ -77,7 +74,6 @@ export class AuthService implements OnModuleInit {
     try {
       const file = Buffer.from(this.publicKeyFile, 'utf8').toString('base64');
       await this.redisClient.set('key_public', file, 'EX', 3600); // 1 hour expiry
-      console.log('Public key cached successfully');
     } catch (error) {
       console.error('Error caching public key:', error);
     }
