@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Res, Query } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -7,21 +7,6 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  async register(@Body() body: any) {
-    return await this.authService.registerUser(body);
-  }
-
-  @Post('login')
-  async login(@Body() body: any) {
-    return await this.authService.loginUser(body);
-  }
-
-  @Post('connectPeer')
-  @UseGuards(JwtAuthGuard)
-  async connectPeer(@Query() query: any, @Req() req: any) {
-    return await this.authService.connectPeer(query.email, req.user);
-  }
 
   @Get('check')
   @UseGuards(JwtAuthGuard)
