@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Req, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Query, Param } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -12,14 +12,14 @@ export class ChatController {
     return await this.chatService.sendMessage(body, req.user);
   }
 
-  @Get('history')
+  @Get(':chatId')
   @UseGuards(JwtAuthGuard)
   async getMessageHistory(
-    @Query('chatUserId') chatUserId: string,
+    @Param('chatId') chatId: string,
     @Req() req: any
   ) {
     const { userId } = req.user;
-    const messages = await this.chatService.getMessageHistory(userId, chatUserId);
+    const messages = await this.chatService.getMessageHistory(userId, chatId);
     return { success: true, data: messages };
   }
 }

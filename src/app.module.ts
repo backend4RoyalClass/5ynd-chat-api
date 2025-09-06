@@ -12,9 +12,10 @@ import { HealthController } from './health.controller';
       isGlobal: true,
     }),
     MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URL'),
-        // Additional MongoDB options for replica set
+        uri: process.env.MONGO_URI || 'mongodb://localhost:27017/chat',
         retryWrites: true,
         w: 'majority',
         readPreference: 'primary',
@@ -22,7 +23,6 @@ import { HealthController } from './health.controller';
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
       }),
-      inject: [ConfigService],
     }),
     ChatModule, // Import ChatModule first (contains RedisService)
     AuthModule, // Then AuthModule
@@ -30,4 +30,4 @@ import { HealthController } from './health.controller';
   ],
   controllers: [HealthController],
 })
-export class AppModule {}
+export class AppModule { }

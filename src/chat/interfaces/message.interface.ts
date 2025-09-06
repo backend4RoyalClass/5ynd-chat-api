@@ -1,5 +1,6 @@
 export interface ChatMessage {
   id: string;
+  conversationId?: string;
   from: string;
   to: string;
   message: string;
