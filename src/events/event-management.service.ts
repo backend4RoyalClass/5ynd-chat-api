@@ -80,9 +80,23 @@ export class EventManagementService implements OnModuleInit, OnModuleDestroy {
   private async handleDeliveryCache(msg: any, type: string) {
     Logger.log(`Handling delivery cache for ${type}:`, msg);
     try {
-      // Mark message as delivered in MongoDB
-      await this.messageDbService.markMessageAsDelivered(msg.id);
-      Logger.log(`Message ${msg.id} marked as delivered in MongoDB`);
+      // Mark message as delivered in MongoDB and get conversation ID
+      const conversationId = await this.messageDbService.markMessageAsDelivered(msg.id);
+      
+      if (conversationId) {
+        // Add conversationId to the message object
+        const updatedMsg = {
+          ...msg,
+          conversationId: conversationId
+        };
+        
+        Logger.log(`Message ${msg.id} marked as delivered in MongoDB with conversationId: ${conversationId}`);
+        
+        // You can publish the updated message with conversationId if needed
+        await this.publish(`DELIVERY_CONFIRMED_${type.toUpperCase()}`, JSON.stringify(updatedMsg));
+      } else {
+        Logger.warn(`Could not find conversation ID for message ${msg.id}`);
+      }
     } catch (error) {
       Logger.error(`Error handling delivery cache: ${error.message}`);
     }

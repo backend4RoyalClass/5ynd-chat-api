@@ -152,9 +152,9 @@ export class ChatService {
     }
   }
 
-  async getMessageHistory(userId: string, chatUserId: string): Promise<any[]> {
+  async getMessageHistory(userId: string, chatId: string): Promise<any[]> {
     try {
-      return await this.messageDbService.getConversationMessages(userId, chatUserId);
+      return await this.messageDbService.getConversationMessages(userId, chatId);
     } catch (error) {
       console.error('Error getting message history:', error);
       return [];
