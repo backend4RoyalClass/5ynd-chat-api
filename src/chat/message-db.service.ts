@@ -71,6 +71,7 @@ export class MessageDbService {
         { 'messages.id': messageId },
         { conversationId: 1 }
       );
+      Logger.log('conversation', conversation);
 
       if (!conversation) {
         this.logger.warn(`No conversation found for message ID: ${messageId}`);
