@@ -20,9 +20,11 @@ export class ChatService {
 
       const { userId, isWeb } = user;
       const chatId = `${userId}-${to}-${new Date().getTime()}`;
+      const conversationId = `${userId}_${to}`;
       
       const msg: ChatMessage = {
         id: chatId,
+        conversationId: conversationId,
         from: userId,
         to: to,
         message: message,
@@ -52,6 +54,7 @@ export class ChatService {
         // Also store in MongoDB
         await this.messageDbService.storePendingMessage(`${to}_web`, {
           id: chatId,
+          conversation_id: conversationId,
           from: userId,
           msg: message,
           date: new Date()
@@ -69,6 +72,7 @@ export class ChatService {
         // Also store in MongoDB
         await this.messageDbService.storePendingMessage(`${to}_mobile`, {
           id: chatId,
+          conversation_id: conversationId,
           from: userId,
           msg: message,
           date: new Date()
@@ -152,9 +156,9 @@ export class ChatService {
     }
   }
 
-  async getMessageHistory(userId: string, chatId: string): Promise<any[]> {
+  async getMessageHistory(userId: string, chatUserId: string): Promise<any[]> {
     try {
-      return await this.messageDbService.getConversationMessages(userId, chatId);
+      return await this.messageDbService.getConversationMessages(userId, chatUserId);
     } catch (error) {
       console.error('Error getting message history:', error);
       return [];

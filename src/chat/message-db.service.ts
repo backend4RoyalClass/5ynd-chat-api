@@ -64,20 +64,8 @@ export class MessageDbService {
     }
   }
 
-  async markMessageAsDelivered(messageId: string): Promise<string | null> {
+  async markMessageAsDelivered(messageId: string): Promise<void> {
     try {
-      // First, find the conversation to get the conversationId
-      const conversation = await this.conversationModel.findOne(
-        { 'messages.id': messageId },
-        { conversationId: 1 }
-      );
-      Logger.log('conversation', conversation);
-
-      if (!conversation) {
-        this.logger.warn(`No conversation found for message ID: ${messageId}`);
-        return null;
-      }
-
       const updateResult = await this.conversationModel.updateOne(
         { 'messages.id': messageId },
         {
@@ -87,11 +75,8 @@ export class MessageDbService {
           }
         }
       );
-
-      return conversation.conversationId;
     } catch (error) {
       this.logger.error(`Error marking message as delivered: ${error.message}`, error.stack);
-      return null;
     }
   }
 

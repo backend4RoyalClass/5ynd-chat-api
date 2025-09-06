@@ -6,6 +6,9 @@ export class PendingMessageItem {
   @Prop({ required: true })
   id: string;
 
+  @Prop({ required: false })
+  conversation_id?: string;
+
   @Prop({ required: true })
   from: string;
 
